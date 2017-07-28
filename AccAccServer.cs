@@ -37,7 +37,16 @@ namespace AccAcc
     {
         public bool auto_ip_address = true;
         public string ip_address_manual_;
-        public int port_;
+        public int port_ = -1;
+        public float accacc_speed_ = 0.5f;
+        public float accacc_power_ = 1.0f;
+
+        public delegate void delegate_on_connect();
+        public delegate void delegate_on_disconnect();
+        public delegate void delegate_on_listen_failed();
+        public delegate_on_connect delegate_on_connect_;
+        public delegate_on_disconnect delegate_on_disconnect_;
+        public delegate_on_listen_failed delegate_on_listen_failed_;
 
         AccAccTcpServer server_;
         DateTime time_rhythm_last_;
@@ -46,22 +55,31 @@ namespace AccAcc
         int count_receive_per_sec_ = 0;
         bool is_connect_ = false;
 
+        int[] port_candidate_;
+        int index_port_candidate_;
+
         // Use this for initialization
         void Start()
         {
             AccAccServerValue.SEND_QUEUE = new ArrayList();
             server_ = new AccAccTcpServer();
+            time_rhythm_last_ = DateTime.Now;
+            time_receive_per_sec_ = DateTime.Now;
+            port_candidate_ = new int[] { 12345, 23456, 34567, 7100, 7101, 8080, 80, 40401, 40508 };
+            start_listening();
+
+        }
+
+        void start_listening()
+        {
             string host = ip_address_manual_;
             if (auto_ip_address)
             {
                 host = get_ip_address();
                 Debug.Log("AccAccServer auto_ip_address = " + host);
             }
-            server_.StartListening(host, port_, on_connect, on_disconnect);
 
-            time_rhythm_last_ = DateTime.Now;
-            time_receive_per_sec_ = DateTime.Now;
-
+            server_.StartListening(host, port_candidate_[index_port_candidate_], on_connect, on_disconnect, on_listen_error, on_listen_start);
         }
 
         void Update()
@@ -143,8 +161,8 @@ namespace AccAcc
                 }
 
 
-                AccAccServerValue.T = 1.0 / hz;
-                AccAccServerValue.POWER = power;
+                AccAccServerValue.T = (1.0f/accacc_speed_)*1.0 / hz;
+                AccAccServerValue.POWER = power*accacc_power_;
                 AccAccServerValue.AVE_POWER_ONE_CYCLE = ave_power_one_cycle;
                 AccAccServerValue.X_R = x_rotate;
                 AccAccServerValue.Y_R = y_rotate;
@@ -155,9 +173,12 @@ namespace AccAcc
             TimeSpan ts = t - time_rhythm_last_;
             if (ts.TotalMilliseconds >= AccAccServerValue.T * 1000)
             {
-                double t_add = -((long)(ts.TotalMilliseconds) % (long)(AccAccServerValue.T * 1000));
-                time_rhythm_last_ = t.Add(TimeSpan.FromMilliseconds(t_add));
-                ++(AccAccServerValue.ON_RHYTHM);
+                if (AccAccServerValue.T > 0.000001f)
+                {
+                    double t_add = -((long)(ts.TotalMilliseconds) % (long)(AccAccServerValue.T * 1000));
+                    time_rhythm_last_ = t.Add(TimeSpan.FromMilliseconds(t_add));
+                    ++(AccAccServerValue.ON_RHYTHM);
+                }
             }
 
             ts = t - time_receive_per_sec_;
@@ -181,11 +202,29 @@ namespace AccAcc
         {
             Debug.LogFormat("accacc_AccAccServerValue : client disconnected:" + s);
             is_connect_ = false;
+            delegate_on_disconnect_();
         }
         public void on_connect()
         {
             Debug.LogFormat("accacc_AccAccServerValue : client connected");
             is_connect_ = true;
+            port_ = port_candidate_[index_port_candidate_];
+            AccAccUdpServer.port_tcp_ = port_;
+            delegate_on_connect_();
+        }
+        public void on_listen_error(string error)
+        {
+            ++index_port_candidate_;
+            if (index_port_candidate_ >= port_candidate_.Length)
+            {
+                delegate_on_listen_failed_();
+                return;
+            }
+            start_listening();
+        }
+        public void on_listen_start(int port)
+        {
+            port_ = port;
         }
 
         void OnDestroy()
@@ -193,7 +232,7 @@ namespace AccAcc
             server_.stop();
         }
 
-        string get_ip_address()
+        public string get_ip_address()
         {
             String hostName = Dns.GetHostName();    // 自身のホスト名を取得
             IPAddress[] addresses = Dns.GetHostAddresses(hostName);

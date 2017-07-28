@@ -16,8 +16,12 @@ namespace AccAcc
         public Deque<byte> queue_;
         public delegate void OnDisconnect(string s);
         public delegate void OnConnect();
+        public delegate void OnListenError(string s);
+        public delegate void OnListenStart(int port);
         OnDisconnect on_disconnect_;
         OnConnect on_connect_;
+        OnListenError on_listen_error_;
+        OnListenStart on_listen_start_;
         Socket listener_;
 
         // State object for reading client data asynchronously
@@ -35,10 +39,12 @@ namespace AccAcc
 
         List<StateObject> activeConnections = new List<StateObject>();
 
-        public void StartListening(String host, int port, OnConnect on_connect, OnDisconnect on_disconnect)
+        public void StartListening(String host, int port, OnConnect on_connect, OnDisconnect on_disconnect, OnListenError on_listen_error, OnListenStart on_listen_start)
         {
             on_connect_ = on_connect;
             on_disconnect_ = on_disconnect;
+            on_listen_error_ = on_listen_error;
+            on_listen_start_ = on_listen_start;
             size_receiving_ = 0;
             lock_ = new object();
             queue_ = new Deque<byte>(1000000);
@@ -57,11 +63,13 @@ namespace AccAcc
 
                 // Start an asynchronous socket to listen for connections.
                 listener_.BeginAccept(new AsyncCallback(AcceptCallback), listener_);
+                on_listen_start_(port);
 
             }
             catch (Exception e)
             {
-                on_disconnect_(e.ToString());
+                //on_disconnect_(e.ToString());
+                on_listen_error_(e.ToString());
             }
 
         }
@@ -135,6 +143,8 @@ namespace AccAcc
 
         public void Send(String data)
         {
+            if (handler_ == null) return;
+
             // Convert the string data to byte data using ASCII encoding.
             byte[] byteData = Encoding.ASCII.GetBytes(data);
 

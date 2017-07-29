@@ -25,4 +25,4 @@ sample_accacc_speed.csをAdd Component
 
 自前でサーバ側のIPアドレス・ポート応答を実装する場合は下図を参照してください。
 
-https://user-images.githubusercontent.com/23157107/28742438-193caf82-746b-11e7-92cf-0cd40740b078.png
+![auto_server_search_protocol](https://user-images.githubusercontent.com/23157107/28742458-9c5d0a74-746b-11e7-866a-b6da3de629ee.png)

@@ -20,3 +20,9 @@ sample_accacc.csをAdd Component
 
 ### アニメーション再生速度のコントロール
 sample_accacc_speed.csをAdd Component
+
+## サーバ探索プロトコル概要
+
+自前でサーバ側のIPアドレス・ポート応答を実装する場合は下図を参照してください。
+
+https://user-images.githubusercontent.com/23157107/28742438-193caf82-746b-11e7-92cf-0cd40740b078.png

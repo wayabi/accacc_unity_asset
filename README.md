@@ -1,6 +1,10 @@
 # accacc_unity_asset
 このアセットはAndroid/iPhone用加速度コントローラ「accacc」をUnityで使うためのものです。
+
 このブランチ「udp_auto_server_search」は2017/07/28以降にリリースされたaccaccの自動サーバ検索に対応したものです。
+-Android ver 1.1.6以降
+-iPhone ver 1.5以降
+
 このサンプルを使えば、ユーザにIPアドレス・ポート番号を入力させず、「Connect」ボタンの押下のみで接続することができます。
 
 accacc:

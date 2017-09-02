@@ -2,6 +2,9 @@
 using System.Collections;
 using System;
 using System.Net;
+using System.Collections.Generic;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 
 namespace AccAcc
 {
@@ -195,14 +198,31 @@ namespace AccAcc
 
         string get_ip_address()
         {
-            String hostName = Dns.GetHostName();    // 自身のホスト名を取得
-            IPAddress[] addresses = Dns.GetHostAddresses(hostName);
-
-            foreach (IPAddress address in addresses)
+            var interfaces = NetworkInterface.GetAllNetworkInterfaces();
+            // 各インターフェースごとの情報を調べる
+            foreach (var adapter in interfaces)
             {
-                if (address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                // 有効なインターフェースのみを対象とする
+                if (adapter.OperationalStatus != OperationalStatus.Up)
                 {
-                    return address.ToString();
+                    continue;
+                }
+
+                // インターフェースに設定されたIPアドレス情報を取得
+                var properties = adapter.GetIPProperties();
+
+                // 設定されているすべてのユニキャストアドレスについて
+                foreach (var unicast in properties.UnicastAddresses)
+                {
+                    if (unicast.Address.AddressFamily == AddressFamily.InterNetwork)
+                    {
+                        // IPv4アドレス
+                        return unicast.Address.ToString();
+                    }
+                    else if (unicast.Address.AddressFamily == AddressFamily.InterNetworkV6)
+                    {
+                        // IPv6アドレス
+                    }
                 }
             }
             return null;
